@@ -1043,20 +1043,25 @@ class ScheduledJobView(generic.ObjectView):
     queryset = ScheduledJob.objects.all()
 
     def _get_job(self, class_path):
+        '''
         job_class = get_job(class_path)
         if job_class is None:
             raise Http404
         return job_class
+        '''
+        return get_job(class_path)
 
     def get_extra_context(self, request, instance):
         job_class = self._get_job(instance.job_class)
         labels = {}
-        for name, var in job_class._get_vars().items():
-            field = var.as_field()
-            if field.label:
-                labels[name] = var
-            else:
-                labels[name] = pretty_name(name)
+
+        if job_class is not None:
+            for name, var in job_class._get_vars().items():
+                field = var.as_field()
+                if field.label:
+                    labels[name] = var
+                else:
+                    labels[name] = pretty_name(name)
         return {"labels": labels}
 
 

@@ -34,7 +34,7 @@ from nautobot.extras.models import (
 from nautobot.extras.registry import DatasourceContent, register_datasource_contents
 from nautobot.tenancy.models import TenantGroup, Tenant
 from nautobot.utilities.git import GitRepo
-from nautobot.utilities.utils import copy_safe_request
+from nautobot.utilities.utils import copy_safe_request, NautobotFakeRequest
 from nautobot.virtualization.models import ClusterGroup, Cluster, VirtualMachine
 from .registry import refresh_datasource_content
 from .utils import files_from_contenttype_directories
@@ -43,11 +43,15 @@ from .utils import files_from_contenttype_directories
 logger = logging.getLogger("nautobot.datasources.git")
 
 
-def enqueue_pull_git_repository_and_refresh_data(repository, request):
+def enqueue_pull_git_repository_and_refresh_data(repository, request, schedule=None):
     """
     Convenience wrapper for JobResult.enqueue_job() to enqueue the pull_git_repository_and_refresh_data job.
     """
     git_repository_content_type = ContentType.objects.get_for_model(GitRepository)
+
+    if isinstance(request, dict):
+        request = NautobotFakeRequest.nautobot_deserialize(request)
+
     JobResult.enqueue_job(
         pull_git_repository_and_refresh_data,
         repository.name,
@@ -55,6 +59,7 @@ def enqueue_pull_git_repository_and_refresh_data(repository, request):
         request.user,
         repository_pk=repository.pk,
         request=copy_safe_request(request),
+        schedule=schedule,
     )
 
 

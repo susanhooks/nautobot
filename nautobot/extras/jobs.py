@@ -1128,5 +1128,13 @@ def scheduled_job_handler(*args, **kwargs):
     scheduled_job_pk = kwargs.pop("scheduled_job_pk")
     schedule = ScheduledJob.objects.get(pk=scheduled_job_pk)
 
-    job_content_type = ContentType.objects.get(app_label="extras", model="job")
-    JobResult.enqueue_job(run_job, name, job_content_type, user, schedule=schedule, **kwargs)
+    if schedule.job_class.startswith("GitRepository"):
+        _, repo_name = schedule.job_class.split("/", 1)
+        from nautobot.extras.datasources.git import enqueue_pull_git_repository_and_refresh_data
+
+        repository = GitRepository.objects.get(name=repo_name)
+        request = schedule.kwargs["request"]
+        enqueue_pull_git_repository_and_refresh_data(repository, request, schedule)
+    else:
+        content_type = ContentType.objects.get(app_label="extras", model="job")
+        JobResult.enqueue_job(run_job, name, content_type, user, schedule=schedule, **kwargs)
